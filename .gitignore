@@ -1,0 +1,16 @@
+# Data
+data/input/
+data/output/
+
+# Logs
+src/logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
