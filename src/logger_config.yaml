@@ -15,7 +15,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: INFO
     formatter: enhanced
-    filename: logs/python_template.log
+    filename: logs/machine_learning.log
     mode: a
     maxBytes: 20485760
     backupCount: 10

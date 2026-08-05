@@ -1,10 +1,12 @@
 """Build the candidate model pipelines.
 
-Feature selection is embedded in the estimators themselves (L1/
-ElasticNet sparsity, tree impurity/gain, ...) rather than a separate
-selection step, so each model does its own feature weighting across
-the 515 mixed-family features. Every estimator must support
-predict_proba, since tools/cv.py scores roc_auc from it.
+Models whose estimator already does its own feature weighting (L1/
+ElasticNet sparsity, tree impurity/gain, ...) skip explicit selection.
+Models with none (svm_rbf, knn, lda, mlp) get a SelectKBest step added
+ahead of them, see MODELS_WITHOUT_EMBEDDED_SELECTION below; its k is
+tuned like any other hyperparameter (MODEL_PARAM_GRIDS' "select__k").
+Every estimator must support predict_proba, since tools/cv.py scores
+roc_auc from it.
 """
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -13,6 +15,7 @@ from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
 )
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
@@ -21,6 +24,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
 from config import RANDOM_STATE
+
+MODELS_WITHOUT_EMBEDDED_SELECTION = {"svm_rbf", "knn", "lda", "mlp"}
 
 
 def _build_logistic_elasticnet() -> LogisticRegression:
@@ -91,10 +96,9 @@ def get_estimator(model_name: str):
 
 
 def build_pipeline(model_name: str) -> Pipeline:
-    "scaler + classifier, fit as a unit inside each CV fold"
-    return Pipeline(
-        [
-            ("scaler", StandardScaler()),
-            ("clf", get_estimator(model_name)),
-        ]
-    )
+    "scaler [+ SelectKBest] + classifier, fit as a unit per CV fold"
+    steps = [("scaler", StandardScaler())]
+    if model_name in MODELS_WITHOUT_EMBEDDED_SELECTION:
+        steps.append(("select", SelectKBest(score_func=f_classif)))
+    steps.append(("clf", get_estimator(model_name)))
+    return Pipeline(steps)

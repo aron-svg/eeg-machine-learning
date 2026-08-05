@@ -1,7 +1,7 @@
 [project]
-name = "template-origenesrd"
+name = "machine-learning-origenesrd"
 version = "0.1.0"
-description = "Template for OrigenesRD repositories"
+description = "Machine learning pipeline for OrigenesRD"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

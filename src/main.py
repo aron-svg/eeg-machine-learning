@@ -12,8 +12,14 @@ def _check_input():
 
 
 if __name__ == "__main__":
+    logger.info("#" * 30)
     logger.info("Starting the main process")
+    logger.info("#" * 30)
     _check_input()
 
     # Start the machine learning process
     main_process()
+
+    logger.info("#" * 30)
+    logger.info("Ending the main process")
+    logger.info("#" * 30)

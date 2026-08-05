@@ -50,6 +50,11 @@ REFIT_METRIC = "balanced_accuracy"
 # len(TARGET_NAMES) * len(ACTIVE_MODELS) stays comfortably under the
 # machine's core count (e.g. 3 targets x 4 models = 12 workers, fine
 # on a 16-core machine).
+# number of features kept by SelectKBest, for models without their
+# own embedded selection (see tools/models.MODELS_WITHOUT_EMBEDDED_
+# SELECTION) -- tuned like any other hyperparameter, inside each fold
+SELECT_K_VALUES = [20, 50, 100]
+
 MODEL_PARAM_GRIDS = {
     "logistic_elasticnet": {
         "clf__C": [0.01, 0.1, 1.0, 10.0],
@@ -69,17 +74,21 @@ MODEL_PARAM_GRIDS = {
         "clf__max_depth": [2, 3],
     },
     "svm_rbf": {
+        "select__k": SELECT_K_VALUES,
         "clf__C": [0.1, 1.0, 10.0],
         "clf__gamma": ["scale", 0.01, 0.001],
     },
     "knn": {
+        "select__k": SELECT_K_VALUES,
         "clf__n_neighbors": [3, 5, 9, 15],
         "clf__weights": ["uniform", "distance"],
     },
     "lda": {
+        "select__k": SELECT_K_VALUES,
         "clf__shrinkage": [None, "auto", 0.1, 0.5],
     },
     "mlp": {
+        "select__k": SELECT_K_VALUES,
         "clf__hidden_layer_sizes": [(64,), (128, 64)],
         "clf__alpha": [0.0001, 0.001, 0.01],
     },
