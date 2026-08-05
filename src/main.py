@@ -1,6 +1,7 @@
 import os
+
+from config import DATA_INPUT_FOLDER
 from logger_init import logger
-from config import DATA_INPUT_FOLDER, DATA_OUTPUT_FOLDER
 from machine_learning import main_process
 
 
@@ -9,14 +10,10 @@ def _check_input():
         logger.error("Input folder is empty")
         raise ValueError("Input folder is empty")
 
+
 if __name__ == "__main__":
     logger.info("Starting the main process")
     _check_input()
 
-    #Start the machine learning process
+    # Start the machine learning process
     main_process()
-
-    
-
-    
-    

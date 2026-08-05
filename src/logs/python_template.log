@@ -1,0 +1,23 @@
+2026-08-05 14:54:52,142 - data_loader - python_template - INFO - Loading feature file: C:\Users\Arons\workspace\eeg-machine-learning\data\input\HZO024_features.npz
+2026-08-05 14:54:52,168 - data_loader - python_template - INFO - Loaded X(187, 515), y(187, 3), 24 groups
+2026-08-05 14:55:09,614 - data_loader - python_template - INFO - Loading feature file: C:\Users\Arons\workspace\eeg-machine-learning\data\input\HZO024_features.npz
+2026-08-05 14:55:09,621 - data_loader - python_template - INFO - Loaded X(187, 515), y(187, 3), 24 groups
+2026-08-05 14:55:24,854 - data_loader - python_template - INFO - Loading feature file: C:\Users\Arons\workspace\eeg-machine-learning\data\input\HZO024_features.npz
+2026-08-05 14:55:24,889 - data_loader - python_template - INFO - Loaded X(187, 515), y(187, 3), 24 groups
+2026-08-05 14:55:41,397 - data_loader - python_template - INFO - Loading feature file: C:\Users\Arons\workspace\eeg-machine-learning\data\input\HZO024_features.npz
+2026-08-05 14:55:41,404 - data_loader - python_template - INFO - Loaded X(187, 515), y(187, 3), 24 groups
+2026-08-05 14:55:56,317 - data_loader - python_template - INFO - Loading feature file: C:\Users\Arons\workspace\eeg-machine-learning\data\input\HZO024_features.npz
+2026-08-05 14:55:56,322 - data_loader - python_template - INFO - Loaded X(187, 515), y(187, 3), 24 groups
+2026-08-05 14:56:20,283 - data_loader - python_template - INFO - Loading feature file: C:\Users\Arons\workspace\eeg-machine-learning\data\input\HZO024_features.npz
+2026-08-05 14:56:20,289 - data_loader - python_template - INFO - Loaded X(187, 515), y(187, 3), 24 groups
+2026-08-05 14:56:36,647 - main - python_template - INFO - Starting the main process
+2026-08-05 14:56:36,647 - machine_learning - python_template - INFO - Starting the machine learning process
+2026-08-05 14:56:36,648 - data_loader - python_template - INFO - Loading feature file: C:\Users\Arons\workspace\eeg-machine-learning\data\input\HZO024_features.npz
+2026-08-05 14:56:36,653 - data_loader - python_template - INFO - Loaded X(187, 515), y(187, 3), 24 groups
+2026-08-05 14:56:36,653 - machine_learning - python_template - INFO - Running cross-validation for target: arousal
+2026-08-05 14:59:18,527 - machine_learning - python_template - INFO - Running cross-validation for target: valence
+2026-08-05 15:01:57,692 - machine_learning - python_template - INFO - Running cross-validation for target: dominance
+2026-08-05 15:04:37,722 - machine_learning - python_template - INFO - arousal: best=logistic_elasticnet balanced_accuracy=0.501
+2026-08-05 15:04:37,722 - machine_learning - python_template - INFO - valence: best=logistic_elasticnet balanced_accuracy=0.517
+2026-08-05 15:04:37,722 - machine_learning - python_template - INFO - dominance: best=random_forest balanced_accuracy=0.463
+2026-08-05 15:04:37,725 - metrics - python_template - INFO - Results saved to C:\Users\Arons\workspace\eeg-machine-learning\data\output\classification_results.json
