@@ -9,8 +9,3 @@ src/logs/
 __pycache__/
 *.pyc
 .venv/
-
-# Editor
-.vscode/*
-!.vscode/settings.json
-!.vscode/launch.json
