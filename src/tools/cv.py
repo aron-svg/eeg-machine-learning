@@ -7,18 +7,21 @@ each outer training fold only, avoiding leakage into the test fold.
 """
 
 import numpy as np
+from joblib import Parallel, delayed
 from sklearn.metrics import balanced_accuracy_score, f1_score, roc_auc_score
 from sklearn.model_selection import GridSearchCV, StratifiedGroupKFold
 
 from config import (
     INNER_CV_SPLITS,
     MODEL_PARAM_GRIDS,
+    N_JOBS_PER_MODEL,
     N_SPLITS,
     RANDOM_STATE,
     REFIT_METRIC,
     SCORING,
 )
 from tools.models import build_pipeline
+from tools.preprocessing import get_target_vector
 
 
 def make_group_cv(n_splits: int) -> StratifiedGroupKFold:
@@ -54,6 +57,7 @@ def run_nested_cv(
             param_grid,
             cv=inner_cv,
             scoring=REFIT_METRIC,
+            n_jobs=N_JOBS_PER_MODEL,
         )
         search.fit(X_train, y_train, groups=groups[train_idx])
 
@@ -67,11 +71,31 @@ def run_nested_cv(
     }
 
 
-def run_cv_for_target(
-    X: np.ndarray, y_target: np.ndarray, groups: np.ndarray, model_names: list
+def run_cv_for_all_targets(
+    X: np.ndarray,
+    y_bin: np.ndarray,
+    groups: np.ndarray,
+    target_names: list,
+    model_names: list,
 ) -> dict:
-    "run nested CV for every candidate model on one target"
-    return {
-        model_name: run_nested_cv(X, y_target, groups, model_name)
+    """run nested CV for every (target, model) pair in parallel
+
+    Targets and models are independent of each other, so every pair
+    gets its own worker instead of looping targets sequentially.
+    """
+    pairs = [
+        (target_name, model_name)
+        for target_name in target_names
         for model_name in model_names
-    }
+    ]
+    results = Parallel(n_jobs=len(pairs))(
+        delayed(run_nested_cv)(
+            X, get_target_vector(y_bin, target_name), groups, model_name
+        )
+        for target_name, model_name in pairs
+    )
+
+    output = {target_name: {} for target_name in target_names}
+    for (target_name, model_name), result in zip(pairs, results):
+        output[target_name][model_name] = result
+    return output

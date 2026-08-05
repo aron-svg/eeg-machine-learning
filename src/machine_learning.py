@@ -6,8 +6,7 @@ from logger_init import logger
 from tools import (
     binarize_targets,
     format_results_for_output,
-    get_target_vector,
-    run_cv_for_target,
+    run_cv_for_all_targets,
     save_results,
 )
 
@@ -15,19 +14,16 @@ MODEL_NAMES = list(MODEL_PARAM_GRIDS)
 
 
 def main_process() -> None:
-    "run nested, group-aware CV for each target and save the results"
+    "run nested, group-aware CV for every target/model pair, in parallel"
     logger.info("Starting the machine learning process")
 
     X, y, groups = load_subject_data()
     y_bin = binarize_targets(y)
 
-    all_results = {}
-    for target_name in TARGET_NAMES:
-        logger.info(f"Running cross-validation for target: {target_name}")
-        y_target = get_target_vector(y_bin, target_name)
-        all_results[target_name] = run_cv_for_target(
-            X, y_target, groups, MODEL_NAMES
-        )
+    logger.info(f"Running cross-validation for {TARGET_NAMES} x {MODEL_NAMES}")
+    all_results = run_cv_for_all_targets(
+        X, y_bin, groups, TARGET_NAMES, MODEL_NAMES
+    )
 
     formatted_results = format_results_for_output(all_results)
     for target_name, target_result in formatted_results.items():

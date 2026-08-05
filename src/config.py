@@ -37,6 +37,10 @@ CLASS_LABELS = {0: "low", 1: "high"}
 N_SPLITS = 3
 INNER_CV_SPLITS = 3
 RANDOM_STATE = 42
+# each model's own GridSearchCV stays single-core: parallelism happens
+# one process per model (see tools/cv.run_cv_for_target), so nesting
+# more cores here would oversubscribe the machine instead of helping.
+N_JOBS_PER_MODEL = 1
 SCORING = ["balanced_accuracy", "f1", "roc_auc"]
 REFIT_METRIC = "balanced_accuracy"
 
