@@ -1,6 +1,6 @@
 """Orchestrate the intra-subject emotion classification pipeline."""
 
-from config import MODEL_PARAM_GRIDS, REFIT_METRIC, TARGET_NAMES
+from config import ACTIVE_MODELS, REFIT_METRIC, TARGET_NAMES
 from data_loader import load_subject_data
 from logger_init import logger
 from tools import (
@@ -10,8 +10,6 @@ from tools import (
     save_results,
 )
 
-MODEL_NAMES = list(MODEL_PARAM_GRIDS)
-
 
 def main_process() -> None:
     "run nested, group-aware CV for every target/model pair, in parallel"
@@ -20,9 +18,9 @@ def main_process() -> None:
     X, y, groups = load_subject_data()
     y_bin = binarize_targets(y)
 
-    logger.info(f"Running cross-validation for {TARGET_NAMES} x {MODEL_NAMES}")
+    logger.info(f"Running CV for {TARGET_NAMES} x {ACTIVE_MODELS}")
     all_results = run_cv_for_all_targets(
-        X, y_bin, groups, TARGET_NAMES, MODEL_NAMES
+        X, y_bin, groups, TARGET_NAMES, ACTIVE_MODELS
     )
 
     formatted_results = format_results_for_output(all_results)
