@@ -1,208 +1,93 @@
-# Python Development Template
+# EEG Machine Learning — Emotion Classification
 
-A comprehensive Python template for beginning new development projects with pre-configured tools and environment setup.
+A machine learning pipeline that predicts a subject's **arousal**, **valence**, and **dominance** (the SAM/AVD model) from precomputed EEG features, using nested, group-aware cross-validation to avoid data leakage between correlated recording windows.
 
-## 🚀 Quick Start
+## Task
 
-This template provides everything you need to start a new Python project quickly and efficiently.
+For each EEG recording session, feature windows (Hjorth parameters, differential entropy, hemispheric asymmetry, ...) are extracted upstream and stored per subject. Each window also carries the subject's self-reported arousal/valence/dominance rating (1-9 scale) for the video stimulus shown during that window.
 
-### Prerequisites
-- Python 3.x installed on your system
-- Git and Git LFS installed
+The pipeline:
+1. Binarizes each rating at a threshold (`label >= 5` → "high", else "low").
+2. Trains and cross-validates a set of candidate classifiers per target.
+3. Reports the best model per target with its held-out performance.
 
-### Setup Environment
+**Current scope: intra-subject** (one subject's file at a time). Multi-subject leave-one-subject-out (LOSO) evaluation is the next phase — the data loader already globs `*_features.npz`, so extending it to concatenate several subjects is the main remaining step.
 
-Choose the appropriate initialization script for your operating system:
+## Setup
 
-#### Windows, Linux/macOS
+Requires [uv](https://docs.astral.sh/uv/).
+
 ```bash
 uv sync
 ```
 
-These scripts will:
-- Create a Python virtual environment (`venv`)
-- Install all required packages from `pyproject.toml`
-- Set up the development environment
+This creates `.venv/` and installs everything pinned in `pyproject.toml` (numpy, pandas, scikit-learn, scipy, plus black/flake8 for linting).
 
-## 📁 Project Structure
+## Input data
 
-```
-Template_OrigenesRD/
-├── src/                    # Source code directory
-│   ├── main.py            # Main application entry point
-│   ├── logger_config.yaml # Logging configuration
-│   ├── logger_init.py     # Logger initialization
-│   └── logging_config.py  # Logging setup
-├── data/                  # Image/Video/CSV assets (tracked by Git LFS)
-├── .vscode/               # VS Code configuration
-│   └── launch.json        # Debug configuration
-├── requirements.txt       # Python dependencies
-├── pyproject.toml         # Project configuration
-├── .gitignore             # Git ignore rules
-├── .gitattributes         # Git LFS configuration
-└── .flake8                # Code linting configuration
-```
+Place one `.npz` file per subject in `data/input/` (e.g. `HZO024_features.npz`, matched by `NPZ_GLOB_PATTERN` in `config.py`). Each archive must contain:
 
-## 📦 Included Dependencies
+| key | shape | description |
+|---|---|---|
+| `X` | `(n_windows, n_features)` | precomputed feature matrix |
+| `y` | `(n_windows, 3)` | arousal, valence, dominance ratings (1-9) |
+| `trial_index` | `(n_windows,)` | which trial/video each window belongs to — used to group cross-validation folds so windows from the same trial never leak between train and test |
+| `subject_id`, `window_start`, `window_end`, `media_filename` | — | carried along, not used by the current pipeline |
 
-The template comes with these pre-configured packages:
+`data/input/` and `data/output/` are gitignored — this repo doesn't version raw EEG data or generated results.
 
-- **requests** (~2.28.1) - HTTP library
-- **pandas** (2.1.1) - Data manipulation and analysis
-- **python-dotenv** (0.20.0) - Environment variable management
-- **numpy** (1.26.0) - Numerical computing
-- **git-lfs** (3.6.1) - Git Large File Storage
-- **flake8** - Code linting
-- **black** - Code formatting
-- **pyyaml** - YAML parsing
-
-## 🛠️ Development Tools
-
-### Code Quality
-- **Flake8**: Configured for code linting with custom rules
-- **Black**: Code formatting (configured in pyproject.toml)
-- **VS Code**: Debug configuration included
-
-### Logging
-- Pre-configured logging system with YAML configuration
-- Structured logging setup for development and production
-
-## 🗂️ Git LFS Configuration
-
-This repository uses Git LFS (Large File Storage) for managing large files efficiently.
-
-### What is Git LFS?
-Git LFS replaces large files with text pointers inside Git, while storing the actual file contents on a remote server like GitHub LFS.
-
-### Configured File Types
-The following file types are automatically tracked by Git LFS:
-
-#### Archives
-- `.zip`, `.tar.gz`, `.7z`, `.rar`
-
-#### Media Files
-- **Video**: `.mp4`, `.avi`, `.mov`, `.mkv`
-- **Audio**: `.mp3`, `.wav`, `.flac`
-- **Images**: `.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.tiff`, `.svg`, `.ico`
-
-#### Data Files
-- `.csv`, `.json`, `.xml`, `.sql`
-- **Databases**: `.db`, `.sqlite`, `.sqlite3`
-
-#### Machine Learning
-- **Models**: `.pkl`, `.pickle`, `.h5`, `.hdf5`, `.pt`, `.pth`, `.onnx`, `.pb`, `.tflite`, `.joblib`
-- **Data**: `.npy`, `.npz`
-
-#### Documents
-- `.pdf`, `.doc`, `.docx`, `.ppt`, `.pptx`, `.xls`, `.xlsx`
-
-#### Binaries
-- `.exe`, `.dll`, `.so`, `.dylib`
-
-### Git LFS Commands
+## Running the pipeline
 
 ```bash
-# Check LFS status
-git lfs status
-
-# List tracked files
-git lfs ls-files
-
-# Track additional file types
-git lfs track "*.extension"
-
-# Migrate existing files to LFS
-git lfs migrate import --include="*.extension"
-
-# Pull LFS files
-git lfs pull
-
-# Push LFS files
-git lfs push origin main
+cd src
+python main.py
 ```
 
-## 🔧 Usage
+This loads the subject file, runs cross-validation for every (target × active model) combination in parallel, logs the best model per target, and writes `data/output/classification_results.json`.
 
-1. **Clone this template**:
-   ```bash
-   git clone <repository-url>
-   cd Template_OrigenesRD
-   code . # TO OPEN VSCODE
-   ```
+## Configuring a run
 
-2. **Initialize the environment**:
-   - Windows: `init.bat`
-   - Linux/macOS: `./init.sh`
+Everything tunable lives in `src/config.py` — no magic numbers elsewhere in the codebase:
 
-3. **Activate the virtual environment**:
-   - Windows: `venv\Scripts\activate`
-   - Linux/macOS: `source venv/bin/activate`
+- **`BINARIZATION_THRESHOLD`** — where the 1-9 rating splits into "low"/"high".
+- **`N_SPLITS` / `INNER_CV_SPLITS`** — outer (evaluation) and inner (hyperparameter search) fold counts for the grouped `StratifiedGroupKFold`.
+- **`MODEL_PARAM_GRIDS`** — the full catalog of 8 candidate models and their hyperparameter grids: `logistic_elasticnet`, `random_forest`, `extra_trees`, `gradient_boosting`, `svm_rbf`, `knn`, `lda`, `mlp`.
+- **`ACTIVE_MODELS`** — which of the 8 actually run this time. Each `(target, model)` pair gets its own CPU core (see below), so keep `len(TARGET_NAMES) * len(ACTIVE_MODELS)` comfortably under your machine's core count.
 
-4. **Start developing**:
-   ```bash
-   python src/main.py
-   ```
+## Methodology notes
 
-## 🖥️ VS Code Integration
+- **Grouped CV**: windows from the same trial share the same stimulus and are temporally close, so a random train/test split would leak information. Every split — outer evaluation and inner hyperparameter search — is grouped by `trial_index` via `StratifiedGroupKFold`.
+- **No leakage from scaling/tuning**: `StandardScaler`, feature selection, and model fitting all happen inside each training fold via an `sklearn.Pipeline`, never on the full dataset.
+- **Feature selection**: models with embedded selection (L1/ElasticNet sparsity, tree impurity/gain) use all 515 features directly. Models without one (`svm_rbf`, `knn`, `lda`, `mlp`) get an explicit `SelectKBest` step, with `k` tuned like any other hyperparameter.
+- **Parallelism**: `tools/cv.py` runs every `(target, model)` pair as its own worker process (`joblib.Parallel`), while each individual `GridSearchCV` stays single-core (`N_JOBS_PER_MODEL`) to avoid oversubscribing the machine.
 
-The template includes VS Code configuration for:
-- Python debugging (launch.json)
-- Code formatting and linting settings
-- Integrated terminal support
+## Project structure
 
-## 📝 Git LFS Notes
+```
+src/
+├── main.py              # entry point: checks input, calls machine_learning.main_process()
+├── config.py            # all tunable constants (paths, targets, CV, model grids, ACTIVE_MODELS)
+├── data_loader.py        # loads a subject's .npz feature archive
+├── machine_learning.py   # orchestrates: load -> binarize -> cross-validate -> save results
+├── tools/                 # ML building blocks
+│   ├── preprocessing.py   # label binarization, target selection
+│   ├── models.py          # pipeline + estimator factory for the 8 candidate models
+│   ├── cv.py               # nested, grouped, parallel cross-validation
+│   └── metrics.py          # score summarization, best-model selection, JSON output
+├── logger_init.py / logging_config.py / logger_config.yaml   # logging setup
+data/
+├── input/                # per-subject .npz feature files (gitignored)
+└── output/               # classification_results.json (gitignored)
+```
 
-1. **First time setup**: Git LFS is already initialized in this repository
-2. **Automatic tracking**: New files matching the configured patterns will automatically use LFS
-3. **Collaboration**: Team members need to have Git LFS installed and run `git lfs install` in their local repos
+## Code style
 
-## 🔍 Troubleshooting
+Formatted with `black` (line length 79) and linted with `flake8`; import order enforced by `isort` — both configured in `pyproject.toml`. No source file exceeds 200 lines by convention, to keep each module focused on one responsibility.
 
-### Environment Issues
-- Ensure Python 3.x is installed
-- Check that pip is up to date
-- Verify virtual environment activation
-
-### Git LFS Issues
-If you encounter issues:
-1. Ensure Git LFS is installed: `git lfs version`
-2. Verify LFS is initialized: `git lfs install`
-3. Check tracking patterns: `git lfs track`
-4. Verify file status: `git lfs status`
-
-## 🐳 Docker Support
-
-Simple Docker setup for easy containerized development and deployment.
-
-### Quick Start
+## Docker
 
 ```bash
-# Build and run with Docker Compose
 docker-compose up
-
-# Or build manually
-docker build -t template-origenesrd .
-docker run -p 8050:8050 template-origenesrd
 ```
 
-### What's Included
-
-- **Dockerfile**: Simple single-stage build
-- **docker-compose.yml**: Basic orchestration
-- **.dockerignore**: Essential exclusions
-
-The container runs your app on port 8050 with live code reloading enabled for development.
-
-## 🤝 Contributing
-
-When contributing to projects based on this template:
-1. Follow the established code style (enforced by flake8 and black)
-2. Update pyproject.toml for new dependencies
-3. Use meaningful commit messages
-4. Large files will automatically be handled by Git LFS
-5. Test Docker builds before submitting PRs
-
----
-
-**Ready to develop!** This template provides a solid foundation for Python projects with modern development practices, tools, and containerization pre-configured.
-
+Builds the image and runs `python src/main.py` once against whatever is mounted in `data/`. There's no HTTP server in this pipeline — the exposed port in `docker-compose.yml` is inherited from the original template and isn't currently used.
